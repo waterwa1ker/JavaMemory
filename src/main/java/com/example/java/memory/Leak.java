@@ -5,10 +5,10 @@ import java.util.List;
 
 public class Leak {
 
-    private final List<Double> leaks = new ArrayList<>();
+    private static final List<Double> leaks = new ArrayList<>();
 
     public void addNumbers() {
-        for (int i = 0; i < 10_000_00; ++i) {
+        for (int i = 0; i < 10_000_000; ++i) {
             leaks.add(Math.random());
         }
     }
