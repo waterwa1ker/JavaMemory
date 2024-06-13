@@ -1,7 +1,7 @@
 # JavaMemory
 
-![Static Badge](https://img.shields.io/badge/java-blue)
-![Static Badge](https://img.shields.io/badge/visualvm-blue)
+![Static Badge](https://img.shields.io/badge/Java-blue)
+![Static Badge](https://img.shields.io/badge/Visualvm-blue)
 ![Static Badge](https://img.shields.io/badge/GCViewer-blue)
 
 ## Кейсы с неправильным использованием памяти
@@ -85,12 +85,93 @@ java -jar {GCVIEWER_FILENAME}.jar
 ![gcviewer-insta](./images/gcviewer-insta.png)
 
 **Красный столбик** - общее количество выделенного памяти в куче.
+
 **Синим цветом** - затраченная память.
 
 Вызовем метод и посмотрим на распределение памяти:
 
 ![gcviewer-after](./images/gcviewer-after.png)
 
+Видно, что потребление памяти стало больше, и сборщик мусора **не будет** очищать выделенную память для статического списка.
+
+## Внутренние классы
+
+Дополним класс Leak, добавив внутренний класс InnerLeak:
+
+```java
+   public InnerLeak createInnerLeak() {
+        return new InnerLeak();
+    }
+
+    public class InnerLeak {
+
+    }
+```
+
+Добавим эндпоинт с созданием 10 экземпляров класса InnerLeak:
+
+```java
+@GetMapping("/inner")
+    public void createInnerInstance() throws InterruptedException {
+        for (int i = 0; i < ITERATION_COUNT; ++i) {
+            Leak leak = new Leak();
+            innerLeaks.add(leak.createInnerLeak());
+            Thread.sleep(SECOND_IN_MILLISECONDS);
+        }
+    }
+```
+
+Смотрим на распределение памяти: видно, что после вызова эндпоинта (отмечено курсором) было выделено 10 раз память на создание объекта, но сборщик не очищает память.
+
+![inner-leaks](./images/inner-leaks.png)
+
+## Ключи в Map
+
+Добавим метод, который добавляет в словарь 10 значений, ключами которого является объект класса LeakKey:
+
+```java
+public class LeakKey {
+
+    private String value;
+
+    public LeakKey(String value) {
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+}
+```
+Добавляем метод, который заполняет наш словарь:
+
+```java
+private Map<LeakKey, Double> map = new HashMap<>();
+
+    public void addValues() {
+        for (int i = 0; i < ITERATION_COUNT; ++i) {
+            map.put(new LeakKey("Value"), Math.random());
+        }
+    }
+```
+
+Важным моментом является наличие переопределенных equals-hashcode в классе LeakKey. Распределение памяти будет очень сильно отличаться в двух разных сценариях:
+
+Без переопределенных методов:
+
+![map-without-equals-hashcode](./images/map-without-equals-hashcode.png)
+
+С переопределенными методами:
+
+![map-with-equals-hashcode](./images/map-with-equals-hashcode.png)
+
+**Без переопределенных методов** в словарь будет добавлено 10 элементов с одинаковыми значениями, **с переопределенными** - предыдущий элемент будет заменен (с очисткой памяти).
+
 ## References
 
-Благодарность этому [материалу](https://www.youtube.com/watch?v=IUUoMVaXzas)
+Благодарность этому [материалу](https://www.youtube.com/watch?v=IUUoMVaXzas) и [статье](https://javarush.com/groups/posts/6518-kofe-breyk-264-utechki-pamjati-java-kak-ikh-obnaruzhitjh-i-predotvratitjh).
