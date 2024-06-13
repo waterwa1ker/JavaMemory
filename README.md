@@ -84,6 +84,13 @@ java -jar {GCVIEWER_FILENAME}.jar
 
 ![gcviewer-insta](./images/gcviewer-insta.png)
 
+**Красный столбик** - общее количество выделенного памяти в куче.
+**Синим цветом** - затраченная память.
+
+Вызовем метод и посмотрим на распределение памяти:
+
+![gcviewer-after](./images/gcviewer-after.png)
+
 ## References
 
 Благодарность этому [материалу](https://www.youtube.com/watch?v=IUUoMVaXzas)
